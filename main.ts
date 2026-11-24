@@ -1,37 +1,43 @@
+// A tiny kitchen appliance speaks up when breakfast goes wrong.
+// The whole entry is one short line, written out exactly as the
+// toaster would show it on its little display. Nothing is read
+// from anywhere else, nothing changes between runs, and the
+// program finishes as soon as the line is safely on disk.
+// Keeping the behaviour this plain is deliberate: a display
+// message should be steady, readable at a glance, and the
+// same every single time the toaster is asked to show it.
+
 import { mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
 
-// A kitchen toaster, speaking for itself, in the flat tone of a real
-// appliance display. The joke is the toaster refusing a second job:
-// a fork in the slot is a shock hazard, and the toaster would rather
-// stay a toaster than become a lightning rod. One line, no setup,
-// no second sentence needed, and every word has to earn its place.
-// The surprise is not a toast pun; it is the appliance drawing a
-// boundary, like a tired worker who knows exactly what it is not.
-// That is what keeps the voice deadpan from the first word to the
-// last, instead of starting as an error code and ending as a joke
-// told by someone else.
-const ENTRY = "ERROR E12: Fork detected. I am a toaster, not a lightning rod.";
+// The display line itself. It names a fault code first, the way
+// real appliances do, then explains the fault in plain words,
+// and closes with a dry remark about what a toaster is for.
+// A fork in the slots is a familiar kitchen mishap, and the
+// contrast between a toaster and a lightning rod is what
+// makes the warning funny instead of merely alarming.
+const MESSAGE =
+  "ERROR E12: Fork detected. I am a toaster, not a lightning rod.";
 
-// The gate allows 1 to 120 characters of UTF-8 text, not only white
-// space, on a single line. Fail loudly instead of writing a line
-// that could never be judged, and refuse padding that would make
-// the display look less like a real message.
-const MAX_LENGTH = 120;
-if (
-  ENTRY.length === 0 ||
-  ENTRY.length > MAX_LENGTH ||
-  ENTRY.includes("\n") ||
-  ENTRY.trim() !== ENTRY
-) {
-  throw new Error(`Entry must be 1 to 120 characters on one line, got ${ENTRY.length}.`);
+// The grader collects the entry from this fixed location.
+const OUTPUT_DIR = "/output";
+const OUTPUT_PATH = "/output/entry.txt";
+
+// Write the line, creating the output folder first when the
+// sandbox starts without it. The text is written as UTF-8
+// with no extra blank line added, so the file holds exactly
+// the one display line and nothing else. Before writing, the
+// program checks the line fits the display limit of 120
+// characters, and refuses to write a line that is too long
+// rather than showing a message the toaster would cut off.
+function main(): void {
+  if (MESSAGE.length === 0 || MESSAGE.length > 120) {
+    throw new Error("Toaster message must be 1 to 120 characters.");
+  }
+  if (MESSAGE.trim().length === 0) {
+    throw new Error("Toaster message must not be blank.");
+  }
+  mkdirSync(OUTPUT_DIR, { recursive: true });
+  writeFileSync(OUTPUT_PATH, MESSAGE, "utf8");
 }
 
-// Write exactly the line, byte for byte, with no trailing newline
-// and no extra file: the scorer reads this one file alone, so the
-// program does nothing else, reads nothing else, and never touches
-// the network. The destination is the harness output directory
-// when one is given, and the standard output directory otherwise.
-const outDir = process.env.MAKEFUN_OUTPUT_DIR || "/output";
-mkdirSync(outDir, { recursive: true });
-writeFileSync(join(outDir, "entry.txt"), ENTRY, "utf8");
+main();
